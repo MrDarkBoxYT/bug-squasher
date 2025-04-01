@@ -16,8 +16,11 @@ class Game {
         };
 
         this.bugs = [];
+        this.powerUps = [];
         this.score = 0;
+        this.level = 1;
         this.spawnBug();
+        this.spawnPowerUp();
         this.bindEvents();
         this.update();
     }
@@ -42,15 +45,29 @@ class Game {
 
     spawnBug() {
         setInterval(() => {
+            let size = Math.random() * 20 + 10;
             this.bugs.push({
+                x: Math.random() * this.canvas.width,
+                y: 0,
+                width: size,
+                height: size,
+                color: 'green',
+                speed: Math.random() * 3 + this.level
+            });
+        }, 1000);
+    }
+
+    spawnPowerUp() {
+        setInterval(() => {
+            this.powerUps.push({
                 x: Math.random() * this.canvas.width,
                 y: 0,
                 width: 20,
                 height: 20,
-                color: 'green',
-                speed: Math.random() * 3 + 1
+                color: 'yellow',
+                speed: 2
             });
-        }, 1000);
+        }, 10000);
     }
 
     detectCollision(bullet, bug) {
@@ -59,6 +76,15 @@ class Game {
             bullet.x + bullet.width > bug.x &&
             bullet.y < bug.y + bug.height &&
             bullet.y + bullet.height > bug.y
+        );
+    }
+
+    detectPowerUpCollision(player, powerUp) {
+        return (
+            player.x < powerUp.x + powerUp.width &&
+            player.x + player.width > powerUp.x &&
+            player.y < powerUp.y + powerUp.height &&
+            player.y + player.height > powerUp.y
         );
     }
 
@@ -84,6 +110,13 @@ class Game {
             this.context.fillRect(bug.x, bug.y, bug.width, bug.height);
         });
 
+        // Update power-ups
+        this.powerUps.forEach(powerUp => {
+            powerUp.y += powerUp.speed;
+            this.context.fillStyle = powerUp.color;
+            this.context.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+        });
+
         // Collision detection
         this.player.bullets.forEach((bullet, bulletIndex) => {
             this.bugs.forEach((bug, bugIndex) => {
@@ -91,13 +124,28 @@ class Game {
                     this.player.bullets.splice(bulletIndex, 1);
                     this.bugs.splice(bugIndex, 1);
                     this.score++;
+                    if (this.score % 10 === 0) {
+                        this.level++;
+                    }
                 }
             });
         });
 
-        // Display score
+        // Power-up collision detection
+        this.powerUps.forEach((powerUp, powerUpIndex) => {
+            if (this.detectPowerUpCollision(this.player, powerUp)) {
+                this.powerUps.splice(powerUpIndex, 1);
+                this.player.color = 'red'; // Change player color as a power-up effect
+                setTimeout(() => {
+                    this.player.color = 'blue'; // Revert player color after power-up effect ends
+                }, 5000);
+            }
+        });
+
+        // Display score and level
         this.context.fillStyle = 'black';
         this.context.fillText(`Score: ${this.score}`, 10, 20);
+        this.context.fillText(`Level: ${this.level}`, 10, 40);
 
         requestAnimationFrame(this.update.bind(this));
     }
